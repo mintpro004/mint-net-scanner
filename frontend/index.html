@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Mint Net Scanner v3.0</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{height:100%;overflow:hidden}
+body{font-family:'Syne',sans-serif;background:#050810;color:#e2e8f0}
+.mono{font-family:'JetBrains Mono',monospace}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:2px}
+.grid-bg{background-image:linear-gradient(rgba(16,185,129,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,.025) 1px,transparent 1px);background-size:36px 36px}
+.card{background:rgba(10,15,30,.7);border:1px solid rgba(255,255,255,.06);border-radius:10px}
+.card-em{background:rgba(10,15,30,.7);border:1px solid rgba(16,185,129,.15);border-radius:10px;box-shadow:inset 0 0 40px rgba(16,185,129,.02)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;cursor:pointer;transition:all .15s;font-size:13px;font-weight:500;color:#475569;border-left:2px solid transparent;user-select:none}
+.nav-item:hover{color:#94a3b8;background:rgba(255,255,255,.03)}
+.nav-item.active{color:#10b981;background:rgba(16,185,129,.07);border-left-color:#10b981}
+.btn{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;border:none;font-family:'JetBrains Mono',monospace;display:inline-flex;align-items:center;gap:6px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-g{background:#10b981;color:#000}.btn-g:hover:not(:disabled){background:#059669}
+.btn-r{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#f87171}.btn-r:hover:not(:disabled){background:rgba(239,68,68,.2)}
+.btn-o{background:transparent;border:1px solid rgba(255,255,255,.1);color:#64748b}.btn-o:hover:not(:disabled){border-color:rgba(255,255,255,.2);color:#e2e8f0}
+.btn-b{background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.2);color:#38bdf8}.btn-b:hover:not(:disabled){background:rgba(56,189,248,.2)}
+.tag{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.blink{animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.fade{animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.slide{animation:slideIn .15s ease}
+@keyframes slideIn{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:none}}
+.scanline{position:relative;overflow:hidden}
+.scanline::after{content:'';position:absolute;top:-100%;left:0;right:0;height:2px;background:linear-gradient(transparent,rgba(16,185,129,.2),transparent);animation:scan 4s linear infinite}
+@keyframes scan{to{top:200%}}
+input,select{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#e2e8f0;padding:8px 12px;font-size:12px;outline:none;transition:border .15s;font-family:'JetBrains Mono',monospace;width:100%}
+input:focus,select:focus{border-color:rgba(16,185,129,.5)}
+select option{background:#0a0f1e}
+table{width:100%;border-collapse:collapse}
+th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#334155;padding:9px 14px;text-align:left;border-bottom:1px solid rgba(255,255,255,.04)}
+td{padding:9px 14px;font-size:12px;border-bottom:1px solid rgba(255,255,255,.025);vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,.015)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#080d1a;border:1px solid rgba(16,185,129,.2);border-radius:14px;max-width:900px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 40px 80px rgba(0,0,0,.6)}
+.risk-bar-bg{background:#1e293b;border-radius:3px;height:5px;overflow:hidden;flex:1}
+.risk-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.detail-row{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.detail-label{color:#475569;font-weight:700;text-transform:uppercase;font-size:9px;letter-spacing:.08em;font-family:'JetBrains Mono',monospace;width:120px;flex-shrink:0;padding-top:1px}
+.detail-val{color:#cbd5e1;flex:1;font-family:'JetBrains Mono',monospace;word-break:break-all}
+</style>
+</head>
+<body class="grid-bg">
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+const RC = window.Recharts;
+
+const DEFAULT_URL = "http://localhost:8000";
+const POLL_MS = 2000;
+
+// ── formatters ──────────────────────────────────────────────────────────────
+const fB  = b => b>=1e9?`${(b/1e9).toFixed(2)}GB`:b>=1e6?`${(b/1e6).toFixed(1)}MB`:b>=1e3?`${(b/1e3).toFixed(1)}KB`:`${b}B`;
+const fBps= b => b>=1e6?`${(b/1e6).toFixed(2)}Mbps`:b>=1e3?`${(b/1e3).toFixed(1)}Kbps`:`${b}bps`;
+const rC  = s => s>=70?"#ef4444":s>=40?"#f59e0b":"#10b981";
+const sC  = s => ({CRITICAL:"#ef4444",HIGH:"#f97316",MEDIUM:"#f59e0b",LOW:"#10b981"})[s]||"#6b7280";
+
+// ── small atoms ──────────────────────────────────────────────────────────────
+const Dot = ({on}) => <span className="blink" style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:on?"#10b981":"#ef4444"}}></span>;
+
+const Pill = ({on,label}) => (
+  <div style={{display:"flex",alignItems:"center",gap:6,padding:"3px 10px",borderRadius:20,
+    background:on?"rgba(16,185,129,.08)":"rgba(239,68,68,.08)",
+    border:`1px solid ${on?"rgba(16,185,129,.2)":"rgba(239,68,68,.2)"}`,
+    fontSize:10,fontWeight:700,fontFamily:"'JetBrains Mono',monospace",
+    color:on?"#34d399":"#f87171"}}>
+    <Dot on={on}/>{label}
+  </div>
+);
+
+const RiskBar = ({score}) => (
+  <div style={{display:"flex",alignItems:"center",gap:8}}>
+    <div className="risk-bar-bg"><div className="risk-fill" style={{width:`${score}%`,background:rC(score)}}></div></div>
+    <span className="mono" style={{fontSize:10,fontWeight:700,color:rC(score),width:22,textAlign:"right"}}>{score}</span>
+  </div>
+);
+
+const SevTag = ({sev}) => (
+  <span className="tag" style={{background:`${sC(sev)}14`,color:sC(sev)}}>{sev}</span>
+);
+
+const StatCard = ({icon,label,value,sub,color="#10b981",onClick}) => (
+  <div onClick={onClick} className="card" style={{padding:16,cursor:onClick?"pointer":"default",transition:"border-color .15s"}}
+    onMouseEnter={e=>onClick&&(e.currentTarget.style.borderColor="rgba(16,185,129,.3)")}
+    onMouseLeave={e=>onClick&&(e.currentTarget.style.borderColor="rgba(255,255,255,.06)")}>
+    <div style={{display:"flex",alignItems:"center",gap:12}}>
+      <div style={{width:38,height:38,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",
+        background:`${color}12`,border:`1px solid ${color}22`,flexShrink:0}}>
+        <i className={icon} style={{color,fontSize:15}}></i>
+      </div>
+      <div>
+        <div style={{fontSize:9,color:"#334155",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",fontFamily:"'JetBrains Mono',monospace"}}>{label}</div>
+        <div style={{fontSize:22,fontWeight:800,color,fontFamily:"'JetBrains Mono',monospace",letterSpacing:"-1px",marginTop:2}}>{value}</div>
+        {sub&&<div style={{fontSize:10,color:"#334155",marginTop:1}}>{sub}</div>}
+      </div>
+    </div>
+  </div>
+);
+
+const OfflineBox = ({url}) => (
+  <div style={{background:"rgba(239,68,68,.06)",border:"1px solid rgba(239,68,68,.18)",borderRadius:10,padding:"14px 18px"}} className="fade">
+    <div style={{display:"flex",gap:12}}>
+      <i className="fa-solid fa-circle-xmark" style={{color:"#f87171",marginTop:2}}></i>
+      <div>
+        <div style={{fontWeight:700,color:"#fca5a5",marginBottom:6,fontSize:13}}>Backend Daemon Offline</div>
+        <div style={{fontSize:11,color:"#64748b",lineHeight:1.6}}>Cannot reach <span className="mono" style={{color:"#f87171"}}>{url}</span></div>
+        <div className="mono" style={{marginTop:10,background:"rgba(0,0,0,.4)",borderRadius:6,padding:"10px 14px",fontSize:11,color:"#34d399",lineHeight:1.8}}>
+          cd backend && sudo python app.py
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const ChartTip = ({active,payload,label}) => {
+  if(!active||!payload?.length) return null;
+  return <div style={{background:"#080d1a",border:"1px solid #1e293b",borderRadius:6,padding:"8px 12px",fontSize:11,fontFamily:"'JetBrains Mono',monospace"}}>
+    <div style={{color:"#475569",marginBottom:4}}>{label}</div>
+    {payload.map((p,i)=><div key={i} style={{color:p.color}}>{p.name}: {p.value}</div>)}
+  </div>;
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// NETWORK HEADER BANNER
+// ══════════════════════════════════════════════════════════════════════════════
+function NetworkBanner({netInfo}) {
+  if (!netInfo) return null;
+  const typeIcon = netInfo.type==="WiFi" ? "fa-wifi" : "fa-ethernet";
+  const sigStr = netInfo.signal_dbm != null
+    ? `${netInfo.signal_dbm} dBm`
+    : netInfo.type==="WiFi" ? "?" : "Wired";
+
+  return (
+    <div className="card-em" style={{padding:"14px 20px",display:"flex",flexWrap:"wrap",gap:20,alignItems:"center"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12}}>
+        <div style={{width:44,height:44,borderRadius:10,background:"rgba(16,185,129,.1)",border:"1px solid rgba(16,185,129,.25)",
+          display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <i className={`fa-solid ${typeIcon}`} style={{color:"#10b981",fontSize:20}}></i>
+        </div>
+        <div>
+          <div style={{fontSize:10,color:"#475569",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",fontFamily:"'JetBrains Mono',monospace"}}>Network</div>
+          <div style={{fontSize:18,fontWeight:800,color:"#e2e8f0",marginTop:2,fontFamily:"'JetBrains Mono',monospace"}}>{netInfo.ssid||"Unknown"}</div>
+          <div style={{fontSize:11,color:"#475569",marginTop:2}}>{netInfo.type} · {netInfo.interface} · {sigStr}</div>
+        </div>
+      </div>
+
+      <div style={{display:"flex",flexWrap:"wrap",gap:16,flex:1}}>
+        {[
+          ["IP Address",  netInfo.ipv4||"—",    "#34d399"],
+          ["Subnet",      netInfo.subnet||"—",   "#38bdf8"],
+          ["Gateway",     netInfo.gateway||"—",  "#a78bfa"],
+          ["MAC",         netInfo.mac||"—",       "#f59e0b"],
+          ["DNS",         (netInfo.dns||[]).join(", ")||"—", "#64748b"],
+          ["Link Speed",  netInfo.link_speed ? `${netInfo.link_speed} Mbps` : "—", "#10b981"],
+          ["MTU",         netInfo.mtu||"—",      "#64748b"],
+          ["IPv6",        netInfo.ipv6 ? netInfo.ipv6.slice(0,24)+"…" : "—", "#64748b"],
+        ].map(([l,v,c])=>(
+          <div key={l}>
+            <div style={{fontSize:9,color:"#334155",fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",fontFamily:"'JetBrains Mono',monospace"}}>{l}</div>
+            <div style={{fontSize:12,fontWeight:700,color:c,fontFamily:"'JetBrains Mono',monospace",marginTop:2}}>{v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INVESTIGATE MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function InvestigateModal({ip, backendUrl, onClose}) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [activeSection, setActiveSection] = useState("overview");
+
+  useEffect(()=>{
+    (async()=>{
+      setLoading(true); setErr("");
+      try {
+        const r = await fetch(`${backendUrl}/api/v1/investigate/${ip}`, {signal:AbortSignal.timeout(90000)});
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        setData(await r.json());
+      } catch(e) { setErr(e.message); }
+      setLoading(false);
+    })();
+  }, [ip]);
+
+  const sections = ["overview","ports","connections","packets","alerts"];
+
+  return (
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal fade">
+        {/* header */}
+        <div style={{padding:"18px 24px",borderBottom:"1px solid rgba(16,185,129,.15)",display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(16,185,129,.04)"}}>
+          <div>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <i className="fa-solid fa-magnifying-glass-chart" style={{color:"#10b981",fontSize:18}}></i>
+              <span style={{fontWeight:800,fontSize:16}}>Deep Investigation</span>
+              <span className="mono tag" style={{background:"rgba(16,185,129,.1)",color:"#10b981",fontSize:12}}>{ip}</span>
+            </div>
+            {data && <div style={{fontSize:11,color:"#475569",marginTop:4}} className="mono">{data.hostname} · {data.category}</div>}
+          </div>
+          <button className="btn btn-o" onClick={onClose}><i className="fa-solid fa-xmark"></i></button>
+        </div>
+
+        {loading && <div style={{padding:60,textAlign:"center",color:"#475569"}} className="mono">
+          <i className="fa-solid fa-spinner fa-spin" style={{fontSize:24,color:"#10b981",display:"block",marginBottom:12}}></i>
+          Running deep host investigation — scanning ports, fingerprinting OS, checking active connections…
+        </div>}
+        {err && <div style={{padding:20,color:"#f87171",fontFamily:"'JetBrains Mono',monospace",fontSize:12}}>Error: {err}</div>}
+
+        {data && (
+          <div>
+            {/* sub-nav */}
+            <div style={{display:"flex",gap:0,padding:"0 24px",borderBottom:"1px solid rgba(255,255,255,.05)",background:"rgba(0,0,0,.2)"}}>
+              {sections.map(s=>(
+                <button key={s} onClick={()=>setActiveSection(s)}
+                  style={{padding:"10px 16px",background:"none",border:"none",cursor:"pointer",fontSize:11,fontWeight:700,
+                    fontFamily:"'JetBrains Mono',monospace",textTransform:"uppercase",letterSpacing:".06em",
+                    color:activeSection===s?"#10b981":"#334155",
+                    borderBottom:activeSection===s?"2px solid #10b981":"2px solid transparent"}}>
+                  {s}
+                  {s==="alerts"&&data.related_alerts?.length>0&&
+                    <span style={{marginLeft:6,background:"#ef4444",color:"#fff",fontSize:9,padding:"1px 5px",borderRadius:10}}>{data.related_alerts.length}</span>}
+                </button>
+              ))}
+            </div>
+
+            <div style={{padding:24}}>
+              {/* OVERVIEW */}
+              {activeSection==="overview" && (
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:".08em",marginBottom:12,fontFamily:"'JetBrains Mono',monospace"}}>Host Identity</div>
+                    {[
+                      ["IP Address",  data.ip],
+                      ["Hostname",    data.hostname],
+                      ["OS",          data.os],
+                      ["Vendor",      data.vendor||"—"],
+                      ["Category",    data.category],
+                      ["Firewall",    data.firewall],
+                      ["Last Seen",   data.last_seen ? new Date(data.last_seen).toLocaleTimeString() : "—"],
+                    ].map(([l,v])=>(
+                      <div className="detail-row" key={l}>
+                        <div className="detail-label">{l}</div>
+                        <div className="detail-val">{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:".08em",marginBottom:12,fontFamily:"'JetBrains Mono',monospace"}}>Risk & Traffic</div>
+                    <div style={{marginBottom:16}}>
+                      <div style={{fontSize:10,color:"#475569",fontFamily:"'JetBrains Mono',monospace",marginBottom:8}}>RISK SCORE</div>
+                      <div style={{display:"flex",alignItems:"center",gap:12}}>
+                        <div style={{fontSize:36,fontWeight:800,fontFamily:"'JetBrains Mono',monospace",color:rC(data.risk_score)}}>{data.risk_score}</div>
+                        <div style={{flex:1}}><RiskBar score={data.risk_score}/></div>
+                      </div>
+                    </div>
+                    {[
+                      ["TX Bytes",     fB(data.flow_stats?.tx_bytes||0)],
+                      ["RX Bytes",     fB(data.flow_stats?.rx_bytes||0)],
+                      ["Packets",      (data.flow_stats?.packets||0).toLocaleString()],
+                      ["Active Conns", data.active_connections?.length||0],
+                      ["Open Ports",   data.ports?.length||0],
+                    ].map(([l,v])=>(
+                      <div className="detail-row" key={l}>
+                        <div className="detail-label">{l}</div>
+                        <div className="detail-val">{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* PORTS */}
+              {activeSection==="ports" && (
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:".08em",marginBottom:14,fontFamily:"'JetBrains Mono',monospace"}}>Open Ports & Services</div>
+                  {data.ports?.length===0
+                    ? <div style={{color:"#334155",fontSize:12}} className="mono">No open ports detected</div>
+                    : <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                      {data.ports.map(p=>{
+                        const svc = data.port_services?.[p]||"Unknown";
+                        const ver = data.service_versions?.[p];
+                        const risky = [21,23,3389,5900,554,445,1883,8000].includes(p);
+                        return (
+                          <div key={p} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",
+                            background:risky?"rgba(239,68,68,.05)":"rgba(255,255,255,.02)",
+                            border:`1px solid ${risky?"rgba(239,68,68,.15)":"rgba(255,255,255,.05)"}`,borderRadius:7}}>
+                            <span className="mono" style={{fontSize:14,fontWeight:700,color:risky?"#f87171":"#38bdf8",width:50}}>{p}</span>
+                            <span className="mono" style={{fontSize:12,color:"#94a3b8",width:80}}>{svc}</span>
+                            {ver && <span style={{fontSize:11,color:"#475569"}} className="mono">
+                              {[ver.product,ver.version,ver.extra].filter(Boolean).join(" ")}</span>}
+                            {risky && <span className="tag" style={{marginLeft:"auto",background:"rgba(239,68,68,.12)",color:"#f87171"}}>HIGH RISK</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  }
+                  {data.outbound_ports?.length>0 && (
+                    <div style={{marginTop:20}}>
+                      <div style={{fontSize:10,color:"#475569",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",fontFamily:"'JetBrains Mono',monospace",marginBottom:8}}>Outbound Ports (from captured traffic)</div>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                        {data.outbound_ports.map(p=>(
+                          <span key={p} className="tag" style={{background:"rgba(56,189,248,.08)",color:"#38bdf8"}}>{p}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* CONNECTIONS */}
+              {activeSection==="connections" && (
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:".08em",marginBottom:14,fontFamily:"'JetBrains Mono',monospace"}}>Active TCP Connections</div>
+                  {data.active_connections?.length===0
+                    ? <div style={{color:"#334155",fontSize:12}} className="mono">No active connections</div>
+                    : <table>
+                      <thead><tr><th>Local</th><th>Remote</th><th>Status</th><th>PID</th></tr></thead>
+                      <tbody>
+                        {data.active_connections.map((c,i)=>(
+                          <tr key={i}>
+                            <td className="mono" style={{color:"#94a3b8",fontSize:11}}>{c.local}</td>
+                            <td className="mono" style={{color:"#cbd5e1",fontSize:11}}>{c.remote}</td>
+                            <td><span className="tag" style={{background:"rgba(16,185,129,.1)",color:"#34d399"}}>{c.status}</span></td>
+                            <td className="mono" style={{color:"#475569"}}>{c.pid||"—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  }
+                </div>
+              )}
+
+              {/* PACKETS */}
+              {activeSection==="packets" && (
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:".08em",marginBottom:14,fontFamily:"'JetBrains Mono',monospace"}}>Recent Captured Packets</div>
+                  {data.recent_packets?.length===0
+                    ? <div style={{color:"#334155",fontSize:12}} className="mono">No packets captured for this host yet</div>
+                    : <div style={{display:"flex",flexDirection:"column",gap:3,maxHeight:300,overflowY:"auto"}}>
+                      {data.recent_packets.map((p,i)=>(
+                        <div key={i} className="slide" style={{display:"flex",gap:10,padding:"5px 8px",borderRadius:5,
+                          background:"rgba(255,255,255,.015)",fontFamily:"'JetBrains Mono',monospace",fontSize:10}}>
+                          <span style={{color:"#334155",width:56,flexShrink:0}}>{p.timestamp}</span>
+                          <span className="tag" style={{background:"rgba(56,189,248,.08)",color:"#38bdf8",flexShrink:0}}>{p.protocol}</span>
+                          <span style={{color:"#64748b",flexShrink:0}}>{p.src_ip}</span>
+                          <span style={{color:"#334155"}}>→</span>
+                          <span style={{color:"#e2e8f0",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.dst_ip}</span>
+                          <span style={{color:"#334155",flexShrink:0}}>{p.packet_size}B</span>
+                        </div>
+                      ))}
+                    </div>
+                  }
+                </div>
+              )}
+
+              {/* ALERTS */}
+              {activeSection==="alerts" && (
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:".08em",marginBottom:14,fontFamily:"'JetBrains Mono',monospace"}}>Related IDS Alerts</div>
+                  {data.related_alerts?.length===0
+                    ? <div style={{color:"#334155",fontSize:12}} className="mono">No alerts for this host</div>
+                    : data.related_alerts.map((a,i)=>(
+                      <div key={i} style={{padding:"12px 14px",borderRadius:7,marginBottom:8,
+                        background:`${sC(a.severity)}06`,border:`1px solid ${sC(a.severity)}20`}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                          <SevTag sev={a.severity}/>
+                          <span style={{fontWeight:700,fontSize:12,color:"#e2e8f0"}}>{a.threat_type}</span>
+                        </div>
+                        <div style={{fontSize:11,color:"#64748b"}}>{a.description}</div>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TRAFFIC ANALYSIS TAB
+// ══════════════════════════════════════════════════════════════════════════════
+function TrafficAnalysis({backendUrl, connected}) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    if(!connected) return;
+    try {
+      const r = await fetch(`${backendUrl}/api/v1/traffic/analysis`, {signal:AbortSignal.timeout(6000)});
+      if(r.ok) setData(await r.json());
+    } catch{}
+  }, [backendUrl, connected]);
+
+  useEffect(()=>{ load(); const t=setInterval(load, 3000); return()=>clearInterval(t); }, [load]);
+
+  const COLORS = ["#10b981","#38bdf8","#a78bfa","#f59e0b","#f87171","#34d399","#818cf8","#fb923c"];
+
+  return (
+    <div className="fade" style={{display:"flex",flexDirection:"column",gap:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <div style={{fontSize:15,fontWeight:700}}>Traffic Analysis</div>
+          <div className="mono" style={{fontSize:11,color:"#475569",marginTop:3}}>
+            {data ? `${data.total_packets?.toLocaleString()} packets · ${data.total_flows} unique flows` : "Loading…"}
+          </div>
+        </div>
+        <button className="btn btn-o" onClick={load}><i className="fa-solid fa-rotate-right"></i>Refresh</button>
+      </div>
+      {!connected && <OfflineBox url={backendUrl}/>}
+
+      {data && (
+        <>
+          {/* Anomalies */}
+          {data.anomalies?.length>0 && (
+            <div style={{background:"rgba(239,68,68,.05)",border:"1px solid rgba(239,68,68,.15)",borderRadius:10,padding:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#fca5a5",textTransform:"uppercase",letterSpacing:".08em",fontFamily:"'JetBrains Mono',monospace",marginBottom:10}}>
+                <i className="fa-solid fa-triangle-exclamation" style={{marginRight:8}}></i>Anomalies Detected
+              </div>
+              {data.anomalies.map((a,i)=>(
+                <div key={i} style={{display:"flex",gap:10,fontSize:12}}>
+                  <SevTag sev={a.severity}/><span style={{color:"#94a3b8"}}>{a.type}: {a.detail}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+            {/* BPS Chart */}
+            <div className="card" style={{padding:16}}>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>Live Bandwidth History</div>
+              <div style={{fontSize:10,color:"#475569",marginBottom:12}} className="mono">{data.capture_active?"● LIVE":"○ INACTIVE"}</div>
+              <div style={{height:180}}>
+                {RC?.ResponsiveContainer && data.bps_history?.length>1 ? (
+                  <RC.ResponsiveContainer width="100%" height="100%">
+                    <RC.AreaChart data={data.bps_history}>
+                      <defs>
+                        <linearGradient id="gbw2" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={.3}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <RC.CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/>
+                      <RC.XAxis dataKey="ts" stroke="#1e293b" tick={{fill:"#334155",fontSize:8}}/>
+                      <RC.YAxis stroke="#1e293b" tick={{fill:"#334155",fontSize:8}}/>
+                      <RC.Tooltip content={<ChartTip/>}/>
+                      <RC.Area type="monotone" dataKey="bps" name="bps" stroke="#10b981" fill="url(#gbw2)" strokeWidth={2} dot={false}/>
+                    </RC.AreaChart>
+                  </RC.ResponsiveContainer>
+                ) : <div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#1e3a5f",fontSize:11}} className="mono">Capturing…</div>}
+              </div>
+            </div>
+
+            {/* Protocol breakdown */}
+            <div className="card" style={{padding:16}}>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:14}}>Protocol Breakdown</div>
+              <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                {Object.entries(data.protocol_breakdown||{}).slice(0,8).map(([proto,pct],i)=>(
+                  <div key={proto} style={{display:"flex",alignItems:"center",gap:10}}>
+                    <span className="mono" style={{fontSize:11,color:"#94a3b8",width:50}}>{proto}</span>
+                    <div style={{flex:1,height:6,background:"#1e293b",borderRadius:3,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${pct}%`,background:COLORS[i%COLORS.length],borderRadius:3,transition:"width .6s"}}></div>
+                    </div>
+                    <span className="mono" style={{fontSize:10,color:COLORS[i%COLORS.length],width:34,textAlign:"right"}}>{pct}%</span>
+                  </div>
+                ))}
+                {Object.keys(data.protocol_breakdown||{}).length===0 && <div style={{color:"#334155",fontSize:12}} className="mono">No data yet — start packet capture</div>}
+              </div>
+            </div>
+          </div>
+
+          {/* Top Talkers */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+            <div className="card" style={{overflow:"hidden"}}>
+              <div style={{padding:"12px 14px",borderBottom:"1px solid rgba(255,255,255,.04)",fontWeight:700,fontSize:12}}>
+                <i className="fa-solid fa-upload" style={{color:"#34d399",marginRight:8}}></i>Top Senders (TX)
+              </div>
+              <table>
+                <thead><tr><th>IP</th><th>Bytes Sent</th><th>Packets</th></tr></thead>
+                <tbody>
+                  {data.top_talkers_tx?.length===0
+                    ? <tr><td colSpan="3" style={{textAlign:"center",color:"#334155",padding:"20px 0"}} className="mono">No data</td></tr>
+                    : data.top_talkers_tx?.slice(0,8).map((t,i)=>(
+                      <tr key={i}>
+                        <td className="mono" style={{color:"#cbd5e1",fontSize:11}}>{t.ip}</td>
+                        <td className="mono" style={{color:"#34d399",fontSize:11}}>{fB(t.bytes)}</td>
+                        <td className="mono" style={{color:"#475569",fontSize:11}}>{t.packets?.toLocaleString()}</td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div className="card" style={{overflow:"hidden"}}>
+              <div style={{padding:"12px 14px",borderBottom:"1px solid rgba(255,255,255,.04)",fontWeight:700,fontSize:12}}>
+                <i className="fa-solid fa-download" style={{color:"#38bdf8",marginRight:8}}></i>Top Receivers (RX)
+              </div>
+              <table>
+                <thead><tr><th>IP</th><th>Bytes Recv</th></tr></thead>
+                <tbody>
+                  {data.top_talkers_rx?.length===0
+                    ? <tr><td colSpan="2" style={{textAlign:"center",color:"#334155",padding:"20px 0"}} className="mono">No data</td></tr>
+                    : data.top_talkers_rx?.slice(0,8).map((t,i)=>(
+                      <tr key={i}>
+                        <td className="mono" style={{color:"#cbd5e1",fontSize:11}}>{t.ip}</td>
+                        <td className="mono" style={{color:"#38bdf8",fontSize:11}}>{fB(t.bytes)}</td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Top Conversations */}
+          {data.top_conversations?.length>0 && (
+            <div className="card" style={{overflow:"hidden"}}>
+              <div style={{padding:"12px 14px",borderBottom:"1px solid rgba(255,255,255,.04)",fontWeight:700,fontSize:12}}>
+                <i className="fa-solid fa-arrows-left-right" style={{color:"#a78bfa",marginRight:8}}></i>Top Conversations
+              </div>
+              <table>
+                <thead><tr><th>Flow</th><th>Bytes</th><th style={{width:160}}>Volume</th></tr></thead>
+                <tbody>
+                  {data.top_conversations.map((c,i)=>{
+                    const maxB = data.top_conversations[0].bytes||1;
+                    return (
+                      <tr key={i}>
+                        <td className="mono" style={{color:"#94a3b8",fontSize:11}}>{c.pair}</td>
+                        <td className="mono" style={{color:"#a78bfa",fontSize:11}}>{fB(c.bytes)}</td>
+                        <td><div style={{background:"#1e293b",borderRadius:3,height:5,overflow:"hidden"}}>
+                          <div style={{height:"100%",width:`${(c.bytes/maxB)*100}%`,background:"#a78bfa",transition:"width .5s"}}></div>
+                        </div></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LIVE CONNECTIONS TAB
+// ══════════════════════════════════════════════════════════════════════════════
+function LiveConns({backendUrl, connected}) {
+  const [conns, setConns] = useState([]);
+  const [filter, setFilter] = useState("");
+  useEffect(()=>{
+    const load = async()=>{
+      if(!connected) return;
+      try { const r=await fetch(`${backendUrl}/api/v1/connections`,{signal:AbortSignal.timeout(4000)}); if(r.ok) setConns((await r.json()).connections||[]); } catch{}
+    };
+    load(); const t=setInterval(load,3000); return()=>clearInterval(t);
+  },[backendUrl,connected]);
+
+  const filtered = conns.filter(c=>!filter||c.local_addr?.includes(filter)||c.remote_addr?.includes(filter)||c.status?.includes(filter.toUpperCase()));
+  const estab = conns.filter(c=>c.status==="ESTABLISHED").length;
+
+  return (
+    <div className="fade" style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+        <div>
+          <div style={{fontSize:15,fontWeight:700}}>Live TCP/UDP Connections</div>
+          <div className="mono" style={{fontSize:11,color:"#475569",marginTop:3}}>
+            {conns.length} total · <span style={{color:"#34d399"}}>{estab} established</span>
+          </div>
+        </div>
+        <input value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Filter by IP / status…" style={{width:220}}/>
+      </div>
+      {!connected && <OfflineBox url={backendUrl}/>}
+      <div className="card" style={{overflow:"hidden"}}>
+        <div style={{overflowX:"auto",maxHeight:"calc(100vh - 250px)",overflowY:"auto"}}>
+          <table>
+            <thead><tr><th>Local</th><th>Remote</th><th>Status</th><th>PID</th></tr></thead>
+            <tbody>
+              {filtered.length===0
+                ? <tr><td colSpan="4" style={{textAlign:"center",padding:"40px 0",color:"#334155"}} className="mono">{connected?"No connections":"Daemon offline"}</td></tr>
+                : filtered.slice(0,150).map((c,i)=>(
+                  <tr key={i}>
+                    <td className="mono" style={{color:"#cbd5e1",fontSize:11}}>{c.local_addr}</td>
+                    <td className="mono" style={{color:"#94a3b8",fontSize:11}}>{c.remote_addr||"—"}</td>
+                    <td>
+                      <span className="tag" style={{
+                        background: c.status==="ESTABLISHED"?"rgba(16,185,129,.1)":c.status==="LISTEN"?"rgba(56,189,248,.1)":"rgba(100,116,139,.1)",
+                        color: c.status==="ESTABLISHED"?"#34d399":c.status==="LISTEN"?"#38bdf8":"#64748b"
+                      }}>{c.status}</span>
+                    </td>
+                    <td className="mono" style={{color:"#475569",fontSize:11}}>{c.pid||"—"}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN APP
+// ══════════════════════════════════════════════════════════════════════════════
+function App() {
+  const [backendUrl, setBackendUrl] = useState(()=>localStorage.getItem("mint_url")||DEFAULT_URL);
+  const [urlEdit, setUrlEdit]       = useState(()=>localStorage.getItem("mint_url")||DEFAULT_URL);
+  const [connected, setConnected]   = useState(false);
+  const [metrics, setMetrics]       = useState(null);
+  const [netInfo, setNetInfo]       = useState(null);
+  const [ifaces, setIfaces]         = useState([]);
+  const [tab, setTab]               = useState("dashboard");
+  const [traffic, setTraffic]       = useState([]);
+  const [investigateIp, setInvestigateIp] = useState(null);
+
+  const [scanCfg, setScanCfg]   = useState({interface:"",subnet:"",method:"arp"});
+  const [scanning, setScanning] = useState(false);
+  const [scanMsg, setScanMsg]   = useState(null);
+
+  const [fwIp, setFwIp]       = useState("");
+  const [fwLog, setFwLog]     = useState([]);
+  const [fwRules, setFwRules] = useState("");
+
+  const [gemKey, setGemKey]       = useState(()=>localStorage.getItem("mint_gem")||"");
+  const [showKey, setShowKey]     = useState(false);
+  const [cpQuery, setCpQuery]     = useState("");
+  const [cpHistory, setCpHistory] = useState([{
+    role:"assistant",
+    text:"Mint Net Scanner v3.0 Security Copilot ready.\n\nI have live access to your daemon — real device data, IDS alerts, traffic flows, and full network details.\n\nAsk me anything: 'Summarize threats', 'Which device is riskiest?', 'Analyse my traffic patterns'.",
+    ts:new Date().toLocaleTimeString()
+  }]);
+  const [cpLoading, setCpLoading] = useState(false);
+  const cpEnd = useRef(null);
+  const pollRef = useRef(null);
+
+  // ── poll ──────────────────────────────────────────────────────────────────
+  const fetchMetrics = useCallback(async()=>{
+    try {
+      const r = await fetch(`${backendUrl}/api/v1/metrics`, {signal:AbortSignal.timeout(4000)});
+      if(!r.ok) throw new Error();
+      const d = await r.json();
+      setConnected(true); setMetrics(d);
+      setTraffic(prev=>[...prev,{t:new Date().toLocaleTimeString().slice(0,5),kbps:Math.round((d.current_bps||0)/1000),pps:d.current_pps||0,cpu:d.cpu_percent||0}].slice(-40));
+    } catch { setConnected(false); }
+  }, [backendUrl]);
+
+  const fetchNet = useCallback(async()=>{
+    try {
+      const r = await fetch(`${backendUrl}/api/v1/network`, {signal:AbortSignal.timeout(4000)});
+      if(r.ok) setNetInfo(await r.json());
+    } catch{}
+  }, [backendUrl]);
+
+  const fetchIfaces = useCallback(async()=>{
+    try {
+      const r = await fetch(`${backendUrl}/api/v1/scanner/interfaces`, {signal:AbortSignal.timeout(4000)});
+      if(!r.ok) return;
+      const d = await r.json();
+      setIfaces(d.interfaces||[]);
+      setScanCfg(p=>({...p,
+        interface: p.interface||d.default||"",
+        subnet: p.subnet||(()=>{
+          const def=(d.interfaces||[]).find(i=>i.name===d.default);
+          if(def?.ipv4){const pts=def.ipv4.split(".");return `${pts[0]}.${pts[1]}.${pts[2]}.0/24`;}
+          return "";
+        })()
+      }));
+    } catch{}
+  },[backendUrl]);
+
+  useEffect(()=>{
+    fetchMetrics(); fetchNet(); fetchIfaces();
+    pollRef.current = setInterval(()=>{ fetchMetrics(); }, POLL_MS);
+    const netPoll = setInterval(fetchNet, 10000);
+    return()=>{ clearInterval(pollRef.current); clearInterval(netPoll); };
+  },[fetchMetrics,fetchNet,fetchIfaces]);
+
+  const applyUrl = ()=>{ localStorage.setItem("mint_url",urlEdit); setBackendUrl(urlEdit); };
+
+  // ── scan ──────────────────────────────────────────────────────────────────
+  const runScan = async()=>{
+    setScanning(true); setScanMsg(null);
+    try {
+      const r=await fetch(`${backendUrl}/api/v1/scanner/discover`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(scanCfg),signal:AbortSignal.timeout(120000)});
+      const d=await r.json();
+      if(!r.ok) throw new Error(d.detail||`HTTP ${r.status}`);
+      setScanMsg({ok:true,text:`✔ Found ${d.hosts_found} host(s) · ${d.alerts_generated} alert(s) generated`});
+      await fetchMetrics();
+    } catch(e){ setScanMsg({ok:false,text:`✘ ${e.message}`}); }
+    setScanning(false);
+  };
+
+  // ── firewall ──────────────────────────────────────────────────────────────
+  const applyFw = async(ip,action)=>{
+    try {
+      const r=await fetch(`${backendUrl}/api/v1/firewall/inject`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ip_address:ip,action})});
+      const d=await r.json();
+      setFwLog(p=>[{ts:new Date().toLocaleTimeString(),ip,action,ok:r.ok,detail:r.ok?"OK":d.detail},...p].slice(0,30));
+      await fetchMetrics();
+    } catch(e){ setFwLog(p=>[{ts:new Date().toLocaleTimeString(),ip,action,ok:false,detail:e.message},...p]); }
+  };
+
+  // ── copilot ───────────────────────────────────────────────────────────────
+  const sendCopilot = async(override="")=>{
+    const q=override||cpQuery; if(!q.trim()) return;
+    if(!gemKey){ setShowKey(true); return; }
+    setCpHistory(p=>[...p,{role:"user",text:q,ts:new Date().toLocaleTimeString()}]);
+    setCpQuery(""); setCpLoading(true);
+    const sys=`You are the Security Copilot for Mint Net Scanner v3.0.
+LIVE NETWORK DATA:
+Network: ${netInfo?.ssid||"?"} (${netInfo?.type||"?"}) · IP: ${netInfo?.ipv4||"?"} · Gateway: ${netInfo?.gateway||"?"} · Interface: ${netInfo?.interface||"?"}
+CPU: ${metrics?.cpu_percent}% · RAM: ${metrics?.ram_percent}% · Bandwidth: ${fBps(metrics?.current_bps||0)} · ${metrics?.current_pps||0} pps · ${metrics?.total_packet_count||0} packets captured
+DEVICES (${(metrics?.active_devices||[]).length}):
+${JSON.stringify(metrics?.active_devices||[],null,2)}
+IDS ALERTS (${(metrics?.active_threats||[]).length}):
+${JSON.stringify(metrics?.active_threats||[],null,2)}
+RECENT PACKETS:
+${JSON.stringify((metrics?.live_packet_flows||[]).slice(-5),null,2)}
+Respond with precise, actionable analysis. Provide exact iptables/nftables commands when recommending firewall rules.`;
+    try {
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${gemKey}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:q}]}],systemInstruction:{parts:[{text:sys}]}})});
+      const d=await r.json();
+      if(!r.ok) throw new Error(d.error?.message||`HTTP ${r.status}`);
+      setCpHistory(p=>[...p,{role:"assistant",text:d.candidates?.[0]?.content?.parts?.[0]?.text||"No response.",ts:new Date().toLocaleTimeString()}]);
+    } catch(e){
+      setCpHistory(p=>[...p,{role:"assistant",text:`⚠ API Error: ${e.message}\n\nCheck Gemini key (🔑 icon top-right).`,ts:new Date().toLocaleTimeString()}]);
+    }
+    setCpLoading(false);
+  };
+
+  useEffect(()=>cpEnd.current?.scrollIntoView({behavior:"smooth"}),[cpHistory,cpLoading]);
+
+  // ── derived ───────────────────────────────────────────────────────────────
+  const devices  = metrics?.active_devices||[];
+  const alerts   = metrics?.active_threats||[];
+  const packets  = metrics?.live_packet_flows||[];
+  const criticals = alerts.filter(a=>["CRITICAL","HIGH"].includes(a.severity));
+
+  const nav = [
+    {id:"dashboard", icon:"fa-chart-line",           label:"Dashboard"},
+    {id:"network",   icon:"fa-wifi",                 label:"Network Info"},
+    {id:"discovery", icon:"fa-network-wired",         label:"Host Discovery"},
+    {id:"topology",  icon:"fa-diagram-project",       label:"Topology"},
+    {id:"dpi",       icon:"fa-eye",                   label:"Packet Inspector"},
+    {id:"traffic",   icon:"fa-chart-area",            label:"Traffic Analysis"},
+    {id:"alerts",    icon:"fa-triangle-exclamation",  label:"IDS Alerts", badge:alerts.length},
+    {id:"firewall",  icon:"fa-shield-halved",          label:"Firewall"},
+    {id:"connections",icon:"fa-plug",                 label:"Connections"},
+    {id:"copilot",   icon:"fa-brain",                 label:"AI Copilot", accent:true},
+  ];
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
+
+      {/* HEADER */}
+      <header style={{height:50,background:"rgba(5,8,16,.92)",borderBottom:"1px solid rgba(255,255,255,.05)",
+        display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 18px",
+        backdropFilter:"blur(10px)",flexShrink:0,gap:12,zIndex:20}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:30,height:30,borderRadius:7,background:"#10b981",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <i className="fa-solid fa-shield-halved" style={{color:"#000",fontSize:14}}></i>
+          </div>
+          <span style={{fontWeight:800,fontSize:14,letterSpacing:".05em"}}>MINT NET SCANNER</span>
+          <span className="mono tag" style={{background:"rgba(16,185,129,.08)",color:"#10b981",border:"1px solid rgba(16,185,129,.15)"}}>v3.0</span>
+          {netInfo && <span className="mono" style={{fontSize:10,color:"#334155"}}>
+            <i className={`fa-solid ${netInfo.type==="WiFi"?"fa-wifi":"fa-ethernet"}`} style={{marginRight:4,color:"#10b981"}}></i>
+            {netInfo.ssid}
+          </span>}
+        </div>
+
+        {connected && metrics && (
+          <div style={{display:"flex",gap:16,alignItems:"center"}} className="mono">
+            {[["PKT",(metrics.total_packet_count||0).toLocaleString(),"#34d399"],
+              ["BW",fBps(metrics.current_bps||0),"#38bdf8"],
+              ["PPS",metrics.current_pps||0,"#fbbf24"],
+              ["CPU",`${metrics.cpu_percent}%`,"#a78bfa"],
+              ["RAM",`${metrics.ram_percent}%`,"#fb7185"]].map(([l,v,c])=>(
+              <span key={l} style={{fontSize:10}}>
+                <span style={{color:"#1e293b"}}>{l} </span>
+                <span style={{fontWeight:700,color:c}}>{v}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <Pill on={connected} label={connected?"DAEMON ONLINE":"OFFLINE"}/>
+          <div style={{display:"flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.4)",border:"1px solid rgba(255,255,255,.07)",borderRadius:7,padding:"4px 10px"}}>
+            <input value={urlEdit} onChange={e=>setUrlEdit(e.target.value)} onKeyDown={e=>e.key==="Enter"&&applyUrl()}
+              style={{width:170,fontSize:11,padding:0,border:"none",background:"transparent"}} placeholder="http://localhost:8000"/>
+            <button onClick={applyUrl} style={{background:"none",border:"none",cursor:"pointer",color:"#334155",fontSize:12,padding:0}}>
+              <i className="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+          <button onClick={()=>setShowKey(v=>!v)} title="Gemini API Key"
+            style={{width:32,height:32,borderRadius:7,background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",cursor:"pointer",color:"#475569",fontSize:12}}>
+            <i className="fa-solid fa-key"></i>
+          </button>
+        </div>
+      </header>
+
+      {showKey && (
+        <div style={{position:"absolute",top:56,right:12,zIndex:200,background:"#080d1a",border:"1px solid rgba(255,255,255,.1)",borderRadius:10,padding:16,width:300,boxShadow:"0 20px 40px rgba(0,0,0,.6)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <span style={{fontWeight:700,fontSize:13}}>Gemini API Key</span>
+            <button onClick={()=>setShowKey(false)} style={{background:"none",border:"none",cursor:"pointer",color:"#475569"}}>✕</button>
+          </div>
+          <input type="password" value={gemKey} onChange={e=>setGemKey(e.target.value)}
+            onBlur={()=>{localStorage.setItem("mint_gem",gemKey);setShowKey(false);}}
+            placeholder="AIza…" autoFocus style={{marginBottom:8}}/>
+          <p style={{fontSize:11,color:"#475569",lineHeight:1.5}}>
+            Free key: <a href="https://aistudio.google.com" target="_blank" style={{color:"#34d399"}}>aistudio.google.com</a>. Stored in browser only.
+          </p>
+        </div>
+      )}
+
+      {investigateIp && (
+        <InvestigateModal ip={investigateIp} backendUrl={backendUrl} onClose={()=>setInvestigateIp(null)}/>
+      )}
+
+      <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+        {/* SIDEBAR */}
+        <nav style={{width:200,flexShrink:0,background:"rgba(5,8,16,.7)",borderRight:"1px solid rgba(255,255,255,.04)",
+          padding:"10px 8px",display:"flex",flexDirection:"column",gap:1,overflowY:"auto"}}>
+          {nav.map(item=>(
+            <div key={item.id} className={`nav-item${tab===item.id?" active":""}`}
+              onClick={()=>setTab(item.id)}
+              style={item.accent&&tab!==item.id?{color:"rgba(16,185,129,.5)"}:{}}>
+              <i className={`fa-solid ${item.icon}`} style={{width:16,textAlign:"center",fontSize:12}}></i>
+              <span style={{flex:1,fontSize:12}}>{item.label}</span>
+              {item.badge>0 && <span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:800,padding:"1px 5px",borderRadius:10,fontFamily:"'JetBrains Mono',monospace"}}>{item.badge}</span>}
+            </div>
+          ))}
+          <div style={{marginTop:"auto",padding:"12px 6px"}}>
+            <div className="mono" style={{fontSize:9,color:"#1e293b",lineHeight:1.9}}>
+              {connected?<>
+                <div>Root: <span style={{color:metrics?.running_as_root?"#10b981":"#ef4444"}}>{metrics?.running_as_root?"✔ YES":"✘ NO"}</span></div>
+                <div>Sniffer: <span style={{color:metrics?.sniffer_active?"#10b981":"#ef4444"}}>{metrics?.sniffer_active?"ACTIVE":"INACTIVE"}</span></div>
+                <div>Scapy: <span style={{color:metrics?.scapy_available?"#10b981":"#ef4444"}}>{metrics?.scapy_available?"OK":"MISSING"}</span></div>
+                <div>Nmap: <span style={{color:metrics?.nmap_available?"#10b981":"#ef4444"}}>{metrics?.nmap_available?"OK":"MISSING"}</span></div>
+              </>:<span style={{color:"#ef4444"}}>Daemon offline</span>}
+            </div>
+          </div>
+        </nav>
+
+        {/* MAIN */}
+        <main style={{flex:1,overflowY:"auto",padding:22}}>
+
+          {/* ── DASHBOARD ── */}
+          {tab==="dashboard" && (
+            <div className="fade" style={{display:"flex",flexDirection:"column",gap:18}}>
+              {!connected && <OfflineBox url={backendUrl}/>}
+              <NetworkBanner netInfo={netInfo}/>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:12}}>
+                <StatCard icon="fa-solid fa-laptop-code" label="Devices" color="#10b981" value={devices.length} sub="Discovered" onClick={()=>setTab("discovery")}/>
+                <StatCard icon="fa-solid fa-arrows-up-down" label="Bandwidth" color="#38bdf8" value={fBps(metrics?.current_bps||0)} sub={`${metrics?.current_pps||0} pkt/s`}/>
+                <StatCard icon="fa-solid fa-triangle-exclamation" label="IDS Alerts" color="#ef4444" value={alerts.length} sub={`${criticals.length} critical/high`} onClick={()=>setTab("alerts")}/>
+                <StatCard icon="fa-solid fa-microchip" label="CPU / RAM" color="#a78bfa" value={`${metrics?.cpu_percent||0}%`} sub={`RAM ${metrics?.ram_percent||0}%`}/>
+              </div>
+
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+                <div className="card" style={{padding:16}}>
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>Network Throughput</div>
+                  <div style={{fontSize:10,color:"#475569",marginBottom:12}} className="mono">Live Kbps from kernel counters</div>
+                  <div style={{height:180}}>
+                    {RC?.ResponsiveContainer && traffic.length>1
+                      ? <RC.ResponsiveContainer width="100%" height="100%">
+                          <RC.AreaChart data={traffic}>
+                            <defs><linearGradient id="gbw" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={.3}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient></defs>
+                            <RC.CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/>
+                            <RC.XAxis dataKey="t" stroke="#1e293b" tick={{fill:"#334155",fontSize:8}}/>
+                            <RC.YAxis stroke="#1e293b" tick={{fill:"#334155",fontSize:8}}/>
+                            <RC.Tooltip content={<ChartTip/>}/>
+                            <RC.Area type="monotone" dataKey="kbps" name="Kbps" stroke="#10b981" fill="url(#gbw)" strokeWidth={2} dot={false}/>
+                          </RC.AreaChart>
+                        </RC.ResponsiveContainer>
+                      : <div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#1e293b",fontSize:11}} className="mono">{connected?"Collecting…":"Offline"}</div>}
+                  </div>
+                </div>
+                <div className="card" style={{padding:16}}>
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>CPU Usage</div>
+                  <div style={{fontSize:10,color:"#475569",marginBottom:12}} className="mono">psutil real-time</div>
+                  <div style={{height:180}}>
+                    {RC?.ResponsiveContainer && traffic.length>1
+                      ? <RC.ResponsiveContainer width="100%" height="100%">
+                          <RC.LineChart data={traffic}>
+                            <RC.CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/>
+                            <RC.XAxis dataKey="t" stroke="#1e293b" tick={{fill:"#334155",fontSize:8}}/>
+                            <RC.YAxis stroke="#1e293b" tick={{fill:"#334155",fontSize:8}} domain={[0,100]}/>
+                            <RC.Tooltip content={<ChartTip/>}/>
+                            <RC.Line type="monotone" dataKey="cpu" name="CPU %" stroke="#a78bfa" strokeWidth={2} dot={false}/>
+                          </RC.LineChart>
+                        </RC.ResponsiveContainer>
+                      : <div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#1e293b",fontSize:11}} className="mono">{connected?"Collecting…":"Offline"}</div>}
+                  </div>
+                </div>
+              </div>
+
+              {metrics && (
+                <div className="card" style={{padding:16}}>
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>Session I/O Totals</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:14}}>
+                    {[["Bytes Sent",fB(metrics.bytes_sent||0),"#34d399"],["Bytes Recv",fB(metrics.bytes_recv||0),"#38bdf8"],
+                      ["Pkt Captured",(metrics.total_packet_count||0).toLocaleString(),"#fbbf24"],
+                      ["RAM Used",`${metrics.ram_used_gb}GB`,"#a78bfa"],["RAM Total",`${metrics.ram_total_gb}GB`,"#475569"]].map(([l,v,c])=>(
+                      <div key={l}>
+                        <div style={{fontSize:9,color:"#334155",fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",fontFamily:"'JetBrains Mono',monospace"}}>{l}</div>
+                        <div style={{fontSize:18,fontWeight:800,color:c,fontFamily:"'JetBrains Mono',monospace",marginTop:4}}>{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {criticals.length>0 && (
+                <div style={{background:"rgba(239,68,68,.04)",border:"1px solid rgba(239,68,68,.12)",borderRadius:10,padding:14}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                    <i className="fa-solid fa-triangle-exclamation" style={{color:"#ef4444"}}></i>
+                    <span style={{fontWeight:700,color:"#fca5a5",fontSize:13}}>Critical Alerts</span>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {criticals.slice(0,3).map((a,i)=>(
+                      <div key={i} style={{background:"rgba(0,0,0,.2)",borderRadius:7,padding:"10px 14px",display:"flex",alignItems:"flex-start",gap:10}}>
+                        <SevTag sev={a.severity}/>
+                        <div style={{flex:1}}>
+                          <div style={{fontWeight:700,fontSize:12,color:"#e2e8f0"}}>{a.threat_type}</div>
+                          <div style={{fontSize:11,color:"#475569",marginTop:3}}>{a.description}</div>
+                        </div>
+                        <div style={{display:"flex",gap:6,flexShrink:0}}>
+                          <button className="btn btn-b" style={{fontSize:11,padding:"4px 10px"}} onClick={()=>setInvestigateIp(a.source_ip)}>
+                            <i className="fa-solid fa-magnifying-glass"></i>Investigate
+                          </button>
+                          <button className="btn btn-o" style={{fontSize:11,padding:"4px 10px"}} onClick={()=>{setCpQuery(`Investigate: "${a.threat_type}" on ${a.source_ip}. Provide exact remediation.`);setTab("copilot");}}>
+                            → Copilot
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── NETWORK INFO ── */}
+          {tab==="network" && (
+            <div className="fade" style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={{fontSize:15,fontWeight:700}}>Network Details</div>
+              {!connected && <OfflineBox url={backendUrl}/>}
+              <NetworkBanner netInfo={netInfo}/>
+              {netInfo && (
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+                  <div className="card" style={{padding:18}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:".08em",fontFamily:"'JetBrains Mono',monospace",marginBottom:14}}>Connection Details</div>
+                    {[["SSID / Name",netInfo.ssid],["Network Type",netInfo.type],["Interface",netInfo.interface],
+                      ["IPv4 Address",netInfo.ipv4],["Subnet Mask",netInfo.netmask],["IPv6 Address",netInfo.ipv6||"—"],
+                      ["MAC Address",netInfo.mac],["Default Gateway",netInfo.gateway],
+                      ["Link Speed",netInfo.link_speed?`${netInfo.link_speed} Mbps`:"—"],
+                      ["MTU",netInfo.mtu],["Interface Up",netInfo.is_up?"Yes":"No"]].map(([l,v])=>(
+                      <div className="detail-row" key={l}>
+                        <div className="detail-label">{l}</div>
+                        <div className="detail-val">{v||"—"}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="card" style={{padding:18}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:".08em",fontFamily:"'JetBrains Mono',monospace",marginBottom:14}}>DNS & Signal</div>
+                    <div className="detail-row">
+                      <div className="detail-label">DNS Servers</div>
+                      <div className="detail-val">{(netInfo.dns||[]).join("\n")||"—"}</div>
+                    </div>
+                    <div className="detail-row">
+                      <div className="detail-label">Signal</div>
+                      <div className="detail-val" style={{color:netInfo.signal_dbm!=null&&netInfo.signal_dbm>-65?"#34d399":netInfo.signal_dbm!=null?"#f59e0b":"#475569"}}>
+                        {netInfo.signal_dbm!=null?`${netInfo.signal_dbm} dBm`:"N/A (Ethernet)"}
+                      </div>
+                    </div>
+                    <div className="detail-row">
+                      <div className="detail-label">Subnet</div>
+                      <div className="detail-val">{netInfo.subnet}</div>
+                    </div>
+                    {metrics && <>
+                      <div className="detail-row">
+                        <div className="detail-label">Bytes Sent</div>
+                        <div className="detail-val" style={{color:"#34d399"}}>{fB(metrics.bytes_sent||0)}</div>
+                      </div>
+                      <div className="detail-row">
+                        <div className="detail-label">Bytes Recv</div>
+                        <div className="detail-val" style={{color:"#38bdf8"}}>{fB(metrics.bytes_recv||0)}</div>
+                      </div>
+                    </>}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── DISCOVERY ── */}
+          {tab==="discovery" && (
+            <div className="fade" style={{display:"flex",flexDirection:"column",gap:16}}>
+              {!connected && <OfflineBox url={backendUrl}/>}
+              <div className="card" style={{padding:18}}>
+                <div style={{fontWeight:700,fontSize:14,marginBottom:14}}>Scanner Configuration</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"flex-end"}}>
+                  <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:180}}>
+                    <label style={{fontSize:9,color:"#334155",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",fontFamily:"'JetBrains Mono',monospace"}}>Interface</label>
+                    <select value={scanCfg.interface} onChange={e=>setScanCfg(p=>({...p,interface:e.target.value}))}>
+                      {ifaces.filter(i=>i.is_up).length>0
+                        ? ifaces.filter(i=>i.is_up).map(i=><option key={i.name} value={i.name}>{i.name}{i.ipv4?` (${i.ipv4})`:""}</option>)
+                        : <option value={scanCfg.interface}>{scanCfg.interface||"eth0"}</option>}
+                    </select>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:180}}>
+                    <label style={{fontSize:9,color:"#334155",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",fontFamily:"'JetBrains Mono',monospace"}}>Subnet</label>
+                    <input value={scanCfg.subnet} onChange={e=>setScanCfg(p=>({...p,subnet:e.target.value}))} placeholder="192.168.1.0/24" style={{width:180}}/>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:200}}>
+                    <label style={{fontSize:9,color:"#334155",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",fontFamily:"'JetBrains Mono',monospace"}}>Method</label>
+                    <select value={scanCfg.method} onChange={e=>setScanCfg(p=>({...p,method:e.target.value}))}>
+                      <option value="arp">ARP Broadcast (root, fastest)</option>
+                      <option value="icmp">ICMP Ping Sweep (nmap)</option>
+                      <option value="syn">TCP SYN Scan</option>
+                    </select>
+                  </div>
+                  <button className="btn btn-g" onClick={runScan} disabled={scanning||!connected}>
+                    {scanning?<><i className="fa-solid fa-spinner fa-spin"></i>Scanning…</>:<><i className="fa-solid fa-radar"></i>Run Scan</>}
+                  </button>
+                </div>
+                {scanMsg && <div className="mono" style={{marginTop:12,padding:"8px 12px",borderRadius:6,fontSize:12,
+                  background:scanMsg.ok?"rgba(16,185,129,.07)":"rgba(239,68,68,.07)",
+                  border:`1px solid ${scanMsg.ok?"rgba(16,185,129,.2)":"rgba(239,68,68,.2)"}`,
+                  color:scanMsg.ok?"#34d399":"#f87171"}}>{scanMsg.text}</div>}
+              </div>
+
+              <div className="card" style={{overflow:"hidden"}}>
+                <div style={{padding:"12px 16px",borderBottom:"1px solid rgba(255,255,255,.04)",display:"flex",justifyContent:"space-between"}}>
+                  <span style={{fontWeight:700,fontSize:13}}>Discovered Hosts</span>
+                  <span className="mono" style={{fontSize:11,color:"#334155"}}>{devices.length} device(s)</span>
+                </div>
+                <div style={{overflowX:"auto"}}>
+                  <table>
+                    <thead><tr><th>Host</th><th>MAC / Vendor</th><th>OS</th><th>Ports</th><th>Category</th><th>Risk</th><th>FW</th><th style={{textAlign:"right"}}>Actions</th></tr></thead>
+                    <tbody>
+                      {devices.length===0
+                        ? <tr><td colSpan="8" style={{textAlign:"center",padding:"40px 0",color:"#1e293b"}} className="mono">{connected?"Run a scan above":"Daemon offline"}</td></tr>
+                        : devices.map(d=>(
+                          <tr key={d.id}>
+                            <td>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <span style={{width:7,height:7,borderRadius:"50%",background:"#10b981",flexShrink:0}}></span>
+                                <div>
+                                  <div style={{fontWeight:700,color:"#e2e8f0",fontSize:12}}>{d.hostname}</div>
+                                  <div className="mono" style={{fontSize:10,color:"#334155"}}>{d.ip}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="mono">
+                              <div style={{fontSize:11,color:"#94a3b8"}}>{d.mac}</div>
+                              <div style={{fontSize:10,color:"#475569"}}>{d.vendor}</div>
+                            </td>
+                            <td style={{fontSize:11,color:"#94a3b8"}}>{d.os}</td>
+                            <td className="mono" style={{fontSize:11,color:"#38bdf8",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                              {(d.ports||[]).map(p=>`${p}/${d.portServices?.[p]||"?"}`).join(" ") || "—"}
+                            </td>
+                            <td><span className="tag" style={{background:"rgba(100,116,139,.08)",color:"#64748b"}}>{d.dpiCategory}</span></td>
+                            <td style={{minWidth:110}}><RiskBar score={d.riskScore||0}/></td>
+                            <td>
+                              <span className="tag" style={{background:d.firewallStatus==="Blocked"?"rgba(239,68,68,.1)":"rgba(16,185,129,.1)",color:d.firewallStatus==="Blocked"?"#f87171":"#34d399"}}>
+                                {d.firewallStatus}
+                              </span>
+                            </td>
+                            <td style={{textAlign:"right"}}>
+                              <div style={{display:"flex",gap:5,justifyContent:"flex-end"}}>
+                                <button className="btn btn-b" style={{fontSize:10,padding:"4px 8px"}} onClick={()=>setInvestigateIp(d.ip)}>
+                                  <i className="fa-solid fa-magnifying-glass"></i>Investigate
+                                </button>
+                                {d.firewallStatus==="Blocked"
+                                  ? <button className="btn" style={{fontSize:10,padding:"4px 8px",background:"rgba(16,185,129,.1)",border:"1px solid rgba(16,185,129,.2)",color:"#34d399"}} onClick={()=>applyFw(d.ip,"allow")}>Unblock</button>
+                                  : <button className="btn btn-r" style={{fontSize:10,padding:"4px 8px"}} onClick={()=>applyFw(d.ip,"block")}>Block</button>}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TOPOLOGY ── */}
+          {tab==="topology" && (
+            <div className="fade" style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div style={{fontSize:15,fontWeight:700}}>Network Topology</div>
+              <div className="card-em scanline" style={{padding:32,minHeight:420,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {devices.length===0
+                  ? <div style={{textAlign:"center",color:"#1e293b"}} className="mono">
+                      <i className="fa-solid fa-diagram-project" style={{fontSize:36,marginBottom:12,display:"block"}}></i>
+                      No devices — run a scan first
+                    </div>
+                  : <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:28,width:"100%"}}>
+                    <div style={{display:"flex",gap:24,justifyContent:"center",flexWrap:"wrap"}}>
+                      {devices.filter(d=>d.dpiCategory?.includes("Router")||d.dpiCategory?.includes("Gateway")||(d.ports||[]).includes(53)).map(d=>(
+                        <div key={d.ip} style={{textAlign:"center",cursor:"pointer"}} onClick={()=>setInvestigateIp(d.ip)}>
+                          <div style={{width:56,height:56,borderRadius:"50%",background:"rgba(16,185,129,.1)",border:"2px solid rgba(16,185,129,.4)",
+                            display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto",boxShadow:"0 0 25px rgba(16,185,129,.2)"}}>
+                            <i className="fa-solid fa-router" style={{color:"#10b981",fontSize:20}}></i>
+                          </div>
+                          <div style={{fontSize:11,fontWeight:700,color:"#34d399",marginTop:8}}>{d.hostname}</div>
+                          <div className="mono" style={{fontSize:9,color:"#334155"}}>{d.ip}</div>
+                          <div style={{fontSize:9,color:"#475569",marginTop:2}}>{netInfo?.ssid||"Network"}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {devices.filter(d=>!d.dpiCategory?.includes("Router")&&!d.dpiCategory?.includes("Gateway")).length>0&&(
+                      <div style={{width:2,height:32,background:"linear-gradient(#10b981,transparent)"}}></div>
+                    )}
+                    <div style={{display:"flex",flexWrap:"wrap",gap:16,justifyContent:"center"}}>
+                      {devices.filter(d=>!d.dpiCategory?.includes("Router")&&!d.dpiCategory?.includes("Gateway")).map(d=>{
+                        const risky=d.riskScore>=60;
+                        const iconMap={"IoT / Camera":"fa-camera","NAS / Storage":"fa-database","Linux Server":"fa-server",
+                          "Windows Server":"fa-server","Windows Workstation":"fa-desktop","Raspberry Pi":"fa-microchip",
+                          "Mobile Device":"fa-mobile","Network Printer":"fa-print"};
+                        const icon=iconMap[d.dpiCategory]||"fa-laptop";
+                        return (
+                          <div key={d.ip} style={{textAlign:"center",width:100,cursor:"pointer"}} onClick={()=>setInvestigateIp(d.ip)}>
+                            <div style={{width:48,height:48,borderRadius:9,
+                              background:risky?"rgba(239,68,68,.1)":"rgba(30,41,59,.6)",
+                              border:`1px solid ${risky?"rgba(239,68,68,.3)":"rgba(255,255,255,.07)"}`,
+                              display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto",
+                              boxShadow:risky?"0 0 14px rgba(239,68,68,.2)":"none",transition:"transform .15s"}}
+                              onMouseEnter={e=>e.currentTarget.style.transform="scale(1.08)"}
+                              onMouseLeave={e=>e.currentTarget.style.transform="none"}>
+                              <i className={`fa-solid ${icon}`} style={{color:risky?"#f87171":"#475569",fontSize:16}}></i>
+                            </div>
+                            <div style={{fontSize:9,fontWeight:700,color:"#64748b",marginTop:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.hostname}</div>
+                            <div className="mono" style={{fontSize:8,color:"#1e293b"}}>{d.ip}</div>
+                            <div style={{marginTop:5,padding:"0 4px"}}><RiskBar score={d.riskScore||0}/></div>
+                            <div style={{fontSize:8,color:"#475569",marginTop:2}}>{d.dpiCategory}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          )}
+
+          {/* ── DPI ── */}
+          {tab==="dpi" && (
+            <div className="fade" style={{display:"flex",flexDirection:"column",gap:12,height:"calc(100vh - 120px)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexShrink:0}}>
+                <div>
+                  <div style={{fontSize:15,fontWeight:700}}>Live Packet Capture</div>
+                  <div className="mono" style={{fontSize:11,marginTop:4}}>
+                    {metrics?.sniffer_active
+                      ? <><span style={{color:"#34d399"}}>● LIVE</span> · {(metrics.total_packet_count||0).toLocaleString()} packets · {fBps(metrics.current_bps||0)}</>
+                      : <><span style={{color:"#ef4444"}}>○ INACTIVE</span> · Daemon must run as root (installer force-granted this)</>}
+                  </div>
+                </div>
+              </div>
+              <div className="card" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+                <div style={{background:"rgba(0,0,0,.3)",padding:"7px 14px",borderBottom:"1px solid rgba(255,255,255,.04)",display:"flex",justifyContent:"space-between",flexShrink:0}}>
+                  <span className="mono" style={{fontSize:10,color:"#334155"}}># mint-dpi --live --ring 500 --iface {scanCfg.interface||"auto"}</span>
+                  <span className="mono" style={{fontSize:10,color:metrics?.sniffer_active?"#34d399":"#ef4444"}}>{metrics?.sniffer_active?"● CAPTURING":"○ INACTIVE"}</span>
+                </div>
+                <div style={{flex:1,overflowY:"auto",padding:10,display:"flex",flexDirection:"column",gap:2}}>
+                  {packets.length===0
+                    ? <div style={{textAlign:"center",padding:"60px 0",color:"#1e293b",fontSize:11}} className="mono">{connected?"Waiting for packets…":"Daemon offline"}</div>
+                    : [...packets].reverse().map((p,i)=>(
+                      <div key={i} className="slide" style={{display:"flex",alignItems:"center",gap:8,padding:"4px 8px",borderRadius:4,
+                        fontSize:10,fontFamily:"'JetBrains Mono',monospace",
+                        background:"rgba(255,255,255,.01)",cursor:"pointer"}}
+                        onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.035)"}
+                        onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.01)"}
+                        onClick={()=>setInvestigateIp(p.src_ip!=="?"?p.src_ip:null)}>
+                        <span style={{color:"#1e293b",width:54,flexShrink:0}}>{p.timestamp}</span>
+                        <span className="tag" style={{background:"rgba(56,189,248,.07)",color:"#38bdf8",flexShrink:0}}>{p.protocol}</span>
+                        <span style={{color:"#475569",flexShrink:0}}>{p.src_ip}</span>
+                        <span style={{color:"#1e293b"}}>→</span>
+                        <span style={{color:"#e2e8f0",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.dst_ip}</span>
+                        {p.info&&<span style={{color:"#334155",flexShrink:0,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.info}</span>}
+                        <span style={{color:"#1e293b",flexShrink:0}}>{p.packet_size}B</span>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TRAFFIC ANALYSIS ── */}
+          {tab==="traffic" && <TrafficAnalysis backendUrl={backendUrl} connected={connected}/>}
+
+          {/* ── IDS ALERTS ── */}
+          {tab==="alerts" && (
+            <div className="fade" style={{display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{display:"flex",justifyContent:"space-between"}}>
+                <div style={{fontSize:15,fontWeight:700}}>IDS Alerts</div>
+                <span className="mono" style={{fontSize:11,color:"#334155"}}>{alerts.length} total · {criticals.length} critical/high</span>
+              </div>
+              {alerts.length===0
+                ? <div className="card" style={{padding:"60px 0",textAlign:"center",color:"#1e293b",fontSize:11}} className="mono card">
+                    {connected?"✓ No threats — run a scan":"Daemon offline"}
+                  </div>
+                : alerts.map((a,i)=>(
+                  <div key={i} className="fade" style={{background:"rgba(10,15,30,.8)",border:`1px solid ${sC(a.severity)}18`,borderRadius:10,padding:14}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+                      <div>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                          <SevTag sev={a.severity}/><span style={{fontWeight:700,fontSize:13,color:"#e2e8f0"}}>{a.threat_type}</span>
+                        </div>
+                        <p style={{fontSize:12,color:"#475569",lineHeight:1.6}}>{a.description}</p>
+                        <div className="mono" style={{display:"flex",gap:14,marginTop:10,paddingTop:8,borderTop:"1px solid rgba(255,255,255,.04)",fontSize:10,color:"#1e293b"}}>
+                          <span>Source: <span style={{color:"#f87171"}}>{a.source_ip}</span></span>
+                          <span>Target: {a.destination_ip}</span>
+                          {a.timestamp&&<span style={{marginLeft:"auto"}}>{new Date(a.timestamp).toLocaleTimeString()}</span>}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+                        <button className="btn btn-b" style={{fontSize:11}} onClick={()=>setInvestigateIp(a.source_ip)}>
+                          <i className="fa-solid fa-magnifying-glass"></i>Investigate
+                        </button>
+                        <button className="btn btn-o" style={{fontSize:11}} onClick={()=>{setCpQuery(`Investigate: "${a.threat_type}" on ${a.source_ip}. Exact iptables fix.`);setTab("copilot");}}>
+                          → Copilot
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              }
+            </div>
+          )}
+
+          {/* ── FIREWALL ── */}
+          {tab==="firewall" && (
+            <div className="fade" style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={{fontSize:15,fontWeight:700}}>Firewall Manager</div>
+              {!connected && <OfflineBox url={backendUrl}/>}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+                <div className="card" style={{padding:18,display:"flex",flexDirection:"column",gap:12}}>
+                  <div style={{fontWeight:700,fontSize:13}}>Inject iptables Rule</div>
+                  <div>
+                    <label style={{fontSize:9,color:"#334155",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",fontFamily:"'JetBrains Mono',monospace",display:"block",marginBottom:6}}>Target IP</label>
+                    <input value={fwIp} onChange={e=>setFwIp(e.target.value)} placeholder="192.168.1.x"/>
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button className="btn btn-r" style={{flex:1,justifyContent:"center",padding:"10px 0"}} disabled={!fwIp||!connected} onClick={()=>{applyFw(fwIp,"block");setFwIp("");}}>DROP / BLOCK</button>
+                    <button className="btn" style={{flex:1,justifyContent:"center",padding:"10px 0",background:"rgba(16,185,129,.08)",border:"1px solid rgba(16,185,129,.2)",color:"#34d399"}} disabled={!fwIp||!connected} onClick={()=>{applyFw(fwIp,"allow");setFwIp("");}}>ALLOW</button>
+                  </div>
+                </div>
+                <div className="card" style={{padding:18,display:"flex",flexDirection:"column",gap:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{fontWeight:700,fontSize:13}}>Live iptables</div>
+                    <button className="btn btn-o" disabled={!connected} onClick={async()=>{try{const r=await fetch(`${backendUrl}/api/v1/firewall/rules`);const d=await r.json();setFwRules(d.rules||d.error);}catch(e){setFwRules(`Error: ${e.message}`)}}}>Refresh ↻</button>
+                  </div>
+                  <pre style={{background:"rgba(0,0,0,.4)",border:"1px solid rgba(255,255,255,.05)",borderRadius:7,padding:12,fontSize:10,color:"#34d399",overflowX:"auto",overflowY:"auto",maxHeight:180,whiteSpace:"pre",fontFamily:"'JetBrains Mono',monospace"}}>
+                    {fwRules||"Click Refresh to load rules"}
+                  </pre>
+                </div>
+              </div>
+              {fwLog.length>0&&(
+                <div className="card" style={{overflow:"hidden"}}>
+                  <div style={{padding:"10px 14px",borderBottom:"1px solid rgba(255,255,255,.04)",fontWeight:700,fontSize:12}}>Action Log</div>
+                  <div style={{maxHeight:180,overflowY:"auto"}}>
+                    {fwLog.map((e,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:"7px 14px",borderBottom:"1px solid rgba(255,255,255,.025)",fontSize:11,fontFamily:"'JetBrains Mono',monospace"}}>
+                        <span style={{color:"#1e293b",flexShrink:0}}>{e.ts}</span>
+                        <span style={{fontWeight:700,color:e.action==="block"?"#f87171":"#34d399",flexShrink:0}}>{e.action.toUpperCase()}</span>
+                        <span style={{color:"#94a3b8",flex:1}}>{e.ip}</span>
+                        <span style={{color:e.ok?"#334155":"#f87171"}}>{e.ok?"✔":"✘ "+e.detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── CONNECTIONS ── */}
+          {tab==="connections" && <LiveConns backendUrl={backendUrl} connected={connected}/>}
+
+          {/* ── AI COPILOT ── */}
+          {tab==="copilot" && (
+            <div className="fade" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 120px)"}}>
+              <div style={{marginBottom:12,flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,fontWeight:700,fontSize:14}}>
+                    <i className="fa-solid fa-brain" style={{color:"#10b981"}}></i>
+                    Security Copilot
+                    <span className="mono" style={{fontSize:10,color:"#334155",fontWeight:400}}>Gemini 2.0 Flash</span>
+                  </div>
+                  <div style={{fontSize:11,color:"#334155",marginTop:4}}>
+                    {connected?`Live: ${devices.length} devices · ${alerts.length} alerts · ${netInfo?.ssid||"?"} · ${(metrics?.total_packet_count||0).toLocaleString()} pkts`:"No live data — daemon offline"}
+                  </div>
+                </div>
+                {!gemKey&&<button className="btn btn-o" style={{color:"#fbbf24",borderColor:"rgba(245,158,11,.3)"}} onClick={()=>setShowKey(true)}><i className="fa-solid fa-key"></i>Set Key</button>}
+              </div>
+
+              <div className="card" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+                <div style={{flex:1,overflowY:"auto",padding:14,display:"flex",flexDirection:"column",gap:12}}>
+                  {cpHistory.map((msg,i)=>(
+                    <div key={i} style={{display:"flex",gap:8,maxWidth:700,alignSelf:msg.role==="user"?"flex-end":"flex-start",flexDirection:msg.role==="user"?"row-reverse":"row"}}>
+                      <div style={{width:26,height:26,borderRadius:5,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
+                        background:msg.role==="user"?"#4f46e5":"#10b981",
+                        fontSize:8,fontWeight:800,color:msg.role==="user"?"#fff":"#000",fontFamily:"'JetBrains Mono',monospace"}}>
+                        {msg.role==="user"?"YOU":"AI"}
+                      </div>
+                      <div style={{borderRadius:8,padding:"10px 14px",fontSize:11,lineHeight:1.8,fontFamily:"'JetBrains Mono',monospace",
+                        whiteSpace:"pre-wrap",color:"#cbd5e1",
+                        background:msg.role==="user"?"rgba(79,70,229,.12)":"rgba(0,0,0,.35)",
+                        border:`1px solid ${msg.role==="user"?"rgba(79,70,229,.2)":"rgba(255,255,255,.05)"}`}}>
+                        {msg.text}
+                        <div style={{fontSize:9,color:"#1e293b",marginTop:6}}>{msg.ts}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {cpLoading&&(
+                    <div style={{display:"flex",gap:8,maxWidth:700}}>
+                      <div style={{width:26,height:26,borderRadius:5,background:"#10b981",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:800,color:"#000",fontFamily:"'JetBrains Mono',monospace",animation:"blink 1.4s ease infinite"}}>AI</div>
+                      <div style={{borderRadius:8,padding:"10px 14px",fontSize:11,color:"#334155",fontFamily:"'JetBrains Mono',monospace",background:"rgba(0,0,0,.35)",border:"1px solid rgba(255,255,255,.05)"}}>
+                        Analysing live network data…
+                      </div>
+                    </div>
+                  )}
+                  <div ref={cpEnd}></div>
+                </div>
+                <div style={{padding:10,borderTop:"1px solid rgba(255,255,255,.04)",background:"rgba(0,0,0,.2)",flexShrink:0,display:"flex",gap:8}}>
+                  <input value={cpQuery} onChange={e=>setCpQuery(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendCopilot()}
+                    placeholder="Ask anything about your network…"/>
+                  <button className="btn btn-g" style={{padding:"8px 16px"}} onClick={()=>sendCopilot()} disabled={cpLoading||!cpQuery.trim()}>Send</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </main>
+      </div>
+
+      <footer style={{height:24,background:"rgba(5,8,16,.9)",borderTop:"1px solid rgba(255,255,255,.04)",
+        display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 18px",flexShrink:0}}>
+        <span className="mono" style={{fontSize:9,color:"#1e293b"}}>Mint Net Scanner v3.0 · {connected?`${backendUrl}`:"OFFLINE"}{netInfo?` · ${netInfo.ssid}`:""}</span>
+        <span className="mono" style={{fontSize:9,color:"#1e293b"}}>All data is live from system daemon</span>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
