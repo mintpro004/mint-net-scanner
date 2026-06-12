@@ -203,7 +203,7 @@ function InvestigateModal({ip, backendUrl, onClose}) {
     })();
   }, [ip]);
 
-  const sections = ["overview","ports","connections","packets","alerts"];
+  const sections = ["overview","ports","connections","packets","alerts","diagnostics"];
 
   return (
     <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -391,6 +391,42 @@ function InvestigateModal({ip, backendUrl, onClose}) {
                       </div>
                     ))
                   }
+                </div>
+              )}
+
+              {/* DIAGNOSTICS */}
+              {activeSection==="diagnostics" && (
+                <div className="fade">
+                  <div style={{fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:".08em",marginBottom:14,fontFamily:"'JetBrains Mono',monospace"}}>Deep Diagnostics</div>
+                  <div className="card" style={{padding:16,background:"rgba(255,255,255,.02)"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:700}}>DNS Vulnerability Check</div>
+                        <div style={{fontSize:10,color:"#475569",marginTop:2}}>Tests for recursion and amplification on port 53</div>
+                      </div>
+                      <button className="btn btn-g" onClick={async(e)=>{
+                        const btn = e.currentTarget;
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Checking...';
+                        try {
+                          const r = await fetch(`${backendUrl}/api/v1/dns/check/${ip}`);
+                          const d = await r.json();
+                          document.getElementById('dns-res').innerHTML = `
+                            <div class="mono" style="font-size:12px; margin-top:14px; padding:12px; border-radius:7px; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.05)">
+                              <div style="margin-bottom:8px">Recursion: <span style="color:${d.recursion?'#f87171':'#34d399'}">${d.recursion?'VULNERABLE':'SAFE'}</span></div>
+                              <div style="margin-bottom:8px">Amplification: <span style="color:${d.amplification?'#f87171':'#34d399'}">${d.amplification?'VULNERABLE':'SAFE'}</span></div>
+                              <div style="color:#64748b; font-size:11px">${d.details || 'No additional details.'}</div>
+                            </div>
+                          `;
+                        } catch(err) {
+                          document.getElementById('dns-res').innerHTML = `<div style="color:#f87171; margin-top:10px" class="mono">Error: ${err.message}</div>`;
+                        }
+                        btn.disabled = false;
+                        btn.innerHTML = 'Run DNS Check';
+                      }}>Run DNS Check</button>
+                    </div>
+                    <div id="dns-res"></div>
+                  </div>
                 </div>
               )}
             </div>

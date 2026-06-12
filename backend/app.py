@@ -50,10 +50,10 @@ app = FastAPI(title="Mint Net Scanner", version="3.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 # ── State ─────────────────────────────────────────────────────────────────────
-_packets:  deque = deque(maxlen=500)
-_alerts:   deque = deque(maxlen=300)
+_packets:  deque = deque(maxlen=400)        # Slightly reduced for memory
+_alerts:   deque = deque(maxlen=200)        # Reduced for memory
 _devices:  Dict[str, dict] = {}
-_traffic_stats: deque = deque(maxlen=120)   # per-second snapshots
+_traffic_stats: deque = deque(maxlen=60)    # 1 min history
 _proto_counts: Dict[str, int] = defaultdict(int)
 _ip_flows: Dict[str, dict] = defaultdict(lambda: {"tx": 0, "rx": 0, "packets": 0, "ports": set(), "last_seen": ""})
 _bps = _pps = _total = 0
@@ -61,6 +61,22 @@ _sniffing = False
 _sniff_thread: Optional[threading.Thread] = None
 _last_bps_ts = time.time()
 _last_bps_bytes = 0
+
+def _cleanup_state():
+    """Periodically clear old IP flows and stale data to save memory."""
+    while True:
+        try:
+            time.sleep(300) # every 5 mins
+            now = datetime.now()
+            stale_ips = []
+            for ip, data in _ip_flows.items():
+                if data.get("last_seen"):
+                    ls = datetime.fromisoformat(data["last_seen"])
+                    if (now - ls).total_seconds() > 3600: # 1 hour stale
+                        stale_ips.append(ip)
+            for ip in stale_ips:
+                del _ip_flows[ip]
+        except Exception: pass
 
 # ── Network helpers ───────────────────────────────────────────────────────────
 def _run(cmd, timeout=5, **kw):
@@ -411,15 +427,17 @@ def _pkt_cb(pkt):
     })
 
     # IDS: port scan heuristic
-    recent = [p for p in list(_packets)[-40:] if p.get("src_ip") == src]
-    unique_dports = {p["dport"] for p in recent if p.get("dport")}
-    if len(unique_dports) > 15:
-        aid = f"ids_portscan_{src}"
-        if not any(a["id"] == aid for a in _alerts):
-            _alerts.append({"id": aid, "severity": "HIGH", "threat_type": "Port Scan",
-                "description": f"{src} scanned {len(unique_dports)} distinct ports in <40 packets.",
-                "source_ip": src, "destination_ip": "*",
-                "timestamp": datetime.now().isoformat()})
+    my_ip = local_ip()
+    if src != my_ip:  # Whitelist scanner's own IP
+        recent = [p for p in list(_packets)[-40:] if p.get("src_ip") == src]
+        unique_dports = {p["dport"] for p in recent if p.get("dport")}
+        if len(unique_dports) > 15:
+            aid = f"ids_portscan_{src}"
+            if not any(a["id"] == aid for a in _alerts):
+                _alerts.append({"id": aid, "severity": "HIGH", "threat_type": "Port Scan",
+                    "description": f"{src} scanned {len(unique_dports)} distinct ports in <40 packets.",
+                    "source_ip": src, "destination_ip": "*",
+                    "timestamp": datetime.now().isoformat()})
 
     # IDS: broadcast storms
     if dst in ("255.255.255.255", "224.0.0.1") and _pps > 500:
@@ -507,6 +525,7 @@ async def on_startup():
     iface = default_interface()
     log.info(f"Mint Net Scanner v3.0 | iface={iface} | root={os.geteuid()==0} | scapy={SCAPY_OK} | nmap={NMAP_OK}")
     threading.Thread(target=_traffic_sampler, daemon=True).start()
+    threading.Thread(target=_cleanup_state, daemon=True).start()
     asyncio.create_task(_auto_discovery())
     if SCAPY_OK and os.geteuid() == 0:
         start_sniffer(iface)
@@ -650,6 +669,34 @@ async def investigate(ip: str):
         "last_seen":      flow.get("last_seen", datetime.now().isoformat()),
         "timestamp":      datetime.now().isoformat(),
     }
+
+@app.get("/api/v1/dns/check/{ip}")
+async def dns_check(ip: str):
+    """Deep check for DNS vulnerabilities (recursion, amplification)."""
+    if not SCAPY_OK or os.geteuid() != 0:
+        raise HTTPException(400, "Root/Scapy required for DNS deep check")
+    
+    results = {"recursion": False, "amplification": False, "details": ""}
+    
+    try:
+        # Test recursion: Query for a non-local domain
+        dns_req = scapy.IP(dst=ip)/scapy.UDP(dport=53)/scapy.DNS(rd=1, qd=scapy.DNSQR(qname="google.com"))
+        ans = scapy.sr1(dns_req, timeout=2, verbose=False)
+        
+        if ans and ans.haslayer("DNS"):
+            if ans["DNS"].ancount > 0:
+                results["recursion"] = True
+                results["details"] += "Recursion enabled: Server resolved google.com. "
+            
+            # Amplification check (simplified): Response size > Request size
+            if len(ans) > len(dns_req) * 2:
+                results["amplification"] = True
+                results["details"] += f"Potential amplification: Response is {len(ans)} bytes (req: {len(dns_req)})."
+                
+    except Exception as e:
+        results["details"] = f"Check failed: {e}"
+        
+    return results
 
 class ScanReq(BaseModel):
     interface: str = ""
