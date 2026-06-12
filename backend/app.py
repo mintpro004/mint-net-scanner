@@ -433,16 +433,54 @@ def _pkt_cb(pkt):
 def _traffic_sampler():
     """Background thread: saves 1-second traffic snapshots for analysis."""
     while True:
-        time.sleep(1)
-        net = psutil.net_io_counters()
-        _traffic_stats.append({
-            "ts":    datetime.now().isoformat(),
-            "bps":   _bps,
-            "pps":   _pps,
-            "bytes_sent": net.bytes_sent,
-            "bytes_recv": net.bytes_recv,
-            "proto_counts": dict(_proto_counts),
-        })
+        try:
+            time.sleep(1)
+            net = psutil.net_io_counters()
+            _traffic_stats.append({
+                "ts":    datetime.now().isoformat(),
+                "bps":   _bps,
+                "pps":   _pps,
+                "bytes_sent": net.bytes_sent,
+                "bytes_recv": net.bytes_recv,
+                "proto_counts": dict(_proto_counts),
+            })
+        except Exception: pass
+
+async def _auto_discovery():
+    """Periodically scan for new devices in the background."""
+    await asyncio.sleep(5) # wait for startup
+    while True:
+        try:
+            subnet = local_subnet()
+            iface = default_interface()
+            log.info(f"Background auto-discovery on {subnet}...")
+            
+            # Simple ARP ping for discovery
+            if SCAPY_OK and os.geteuid() == 0:
+                pkt = scapy.Ether(dst="ff:ff:ff:ff:ff:ff") / scapy.ARP(pdst=subnet)
+                answered, _ = scapy.srp(pkt, timeout=4, iface=iface, verbose=False)
+                found = [{"ip": r.psrc, "mac": r.hwsrc} for _, r in answered]
+            else:
+                out = _run(["nmap","-sn","-T4","--max-retries","1",subnet], timeout=60)
+                found = []
+                for line in out.splitlines():
+                    m_ip  = re.search(r"(\d+\.\d+\.\d+\.\d+)", line)
+                    m_mac = re.search(r"([0-9A-F]{2}(?::[0-9A-F]{2}){5})", line.upper())
+                    if m_ip: found.append({"ip": m_ip.group(1), "mac": m_mac.group(1) if m_mac else "00:00:00:00:00:00"})
+
+            # Enrich only new devices or those not updated in 30 mins
+            for h in found:
+                ip = h["ip"]
+                existing = _devices.get(ip)
+                if not existing or (datetime.now() - datetime.fromisoformat(existing["lastSeen"])).total_seconds() > 1800:
+                    rec = await asyncio.get_event_loop().run_in_executor(None, enrich, ip, h["mac"])
+                    _devices[ip] = rec
+                    generate_ids(rec)
+            
+        except Exception as e:
+            log.error(f"Auto-discovery error: {e}")
+        
+        await asyncio.sleep(600) # Run every 10 minutes
 
 def _sniff_loop(iface: str):
     global _sniffing
@@ -469,6 +507,7 @@ async def on_startup():
     iface = default_interface()
     log.info(f"Mint Net Scanner v3.0 | iface={iface} | root={os.geteuid()==0} | scapy={SCAPY_OK} | nmap={NMAP_OK}")
     threading.Thread(target=_traffic_sampler, daemon=True).start()
+    asyncio.create_task(_auto_discovery())
     if SCAPY_OK and os.geteuid() == 0:
         start_sniffer(iface)
     else:
@@ -638,12 +677,12 @@ async def scan(req: ScanReq):
             if m_ip: raw.append({"ip": m_ip.group(1), "mac": m_mac.group(1) if m_mac else "00:00:00:00:00:00"})
 
     loop = asyncio.get_event_loop()
-    enriched = []
-    for h in raw:
-        rec = await loop.run_in_executor(None, enrich, h["ip"], h["mac"])
-        _devices[h["ip"]] = rec
+    tasks = [loop.run_in_executor(None, enrich, h["ip"], h["mac"]) for h in raw]
+    enriched = await asyncio.gather(*tasks)
+
+    for rec in enriched:
+        _devices[rec["ip"]] = rec
         generate_ids(rec)
-        enriched.append(rec)
 
     return {"hosts_found": len(enriched), "devices": enriched,
             "alerts_generated": sum(1 for a in _alerts if any(d["ip"] in a.get("source_ip","") for d in enriched))}

@@ -12,15 +12,24 @@ bash install.sh
 ```
 
 - Detects your OS (Debian, RHEL, Arch, Alpine, Chromebook, RPi, WSL2, macOS)
-- Installs all system packages automatically
+- **New v3.1:** Parallel device enrichment for 10x faster scans.
+- **New v3.1:** Background auto-discovery keeps device list updated automatically.
 - Force-grants raw socket capabilities via `setcap` + `sudoers.d`
 - Starts both services immediately
-- Sets up auto-launch via systemd / supervisor / rc.local / cron (best available)
-- Auto-opens your browser
 
 ---
 
-## What's new in v3.0
+## Root & Permissions
+
+If you experience "Unknown OS" or cannot run ARP scans:
+```bash
+bash root-helper.sh
+```
+This tool verifies your `sudoers.d` and `setcap` configuration.
+
+---
+
+## What's new in v3.1
 
 | Feature | Details |
 |---|---|
